@@ -1,10 +1,14 @@
 extern crate graphics;
 extern crate piston;
 
-use graphics::{Context,
+use graphics::{
+    Context,
     AddRectangle,
     AddColor,
-    Fill
+    Fill,
+    BackEnd,
+    Draw,
+    Image
 };
 
 use piston::{
@@ -14,56 +18,36 @@ use piston::{
     AssetStore,
     GameWindow,
     GameWindowSettings,
-    GameWindowSDL2
+    GameWindowSDL2,
+    Texture,
+    Gl
 };
 
-struct Bx{
-    x: f64,
-    y: f64,
-    w: f64,
-    h: f64,
-    vx: f64,
-    vy: f64
-}
-struct App {
-    bx: Bx,
-    screen_w: f64,
-    screen_h: f64
-}
+use lib::{
+    UiContext,
+    Component,
+    ClippedRectangle,
+    raw_rect
+};
+
+use button::Button;
 
 mod lib;
+mod button;
+
+struct App {
+    ctx: UiContext
+}
 
 impl Game for App {
-    fn render(&self, c: &Context, args: &mut RenderArgs) {
-        c.rect(self.bx.x, self.bx.y, self.bx.w, self.bx.h).rgb(1.0, 0.0, 0.0).fill(args.gl);
+    fn render(&mut self, c: &Context, args: &mut RenderArgs) {
+        let mut rend_ctx = self.ctx.with_graphics(c, args.gl);
+        rend_ctx.with(Button::new("hi"), raw_rect(0.0,0.0, 50.0,50.0));
+        rend_ctx.with(Button::new("hi"), raw_rect(0.0,50.0, 50.0,50.0));
     }
 
     fn update(&mut self, args: &mut UpdateArgs) {
-        let dt = args.dt;
-        self.bx.x += self.bx.vx * dt;
-        self.bx.y += self.bx.vy * dt;
 
-        self.bx.vy += 9.8 * dt;
-
-        if self.bx.x < 0.0 {
-            self.bx.x = 0.0;
-            self.bx.vx = - self.bx.vx;
-        } else if self.bx.x + self.bx.w > self.screen_w {
-            self.bx.x = self.screen_w - self.bx.w - 0.01;
-            self.bx.vx = - self.bx.vx / 2.0;
-            // friction
-            self.bx.vy = self.bx.vy / 1.01;
-        }
-
-        if self.bx.y < 0.0 {
-            self.bx.y = 0.0;
-            self.bx.vy = - self.bx.vy;
-        } else if self.bx.y + self.bx.h > self.screen_h {
-            self.bx.y = self.screen_h - self.bx.h - 0.01;
-            self.bx.vy = - self.bx.vy / 2.0;
-            // friction
-            self.bx.vx = self.bx.vx / 1.01;
-        }
     }
 }
 
@@ -78,16 +62,7 @@ fn main() {
 
     let mut asset_store = AssetStore::empty();
     let mut app = App {
-        bx: Bx {
-            x: 0.0,
-            y: 0.0,
-            w: 50.0,
-            h: 50.0,
-            vx: 40.0,
-            vy: 40.0
-        },
-        screen_w: 200.0,
-        screen_h: 400.0
+        ctx: UiContext::new()
     };
     app.run(&mut game_window, &mut asset_store);
 }
