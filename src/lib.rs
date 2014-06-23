@@ -9,6 +9,7 @@ use std::default::Default;
 use std::intrinsics::TypeId;
 use std::any::{Any, AnyRefExt};
 use std::collections::hashmap::HashMap;
+use std::f64::NEG_INFINITY;
 
 use graphics::{Context, BackEnd, Draw, ImageSize};
 use piston::{GameEvent, MouseMove};
@@ -94,7 +95,7 @@ impl UiContext {
             stored: HashMap::new(),
             event_queue: Vec::new(),
             active_events: Vec::new(),
-            mouse_pos: (0.0, 0.0)
+            mouse_pos: (NEG_INFINITY, NEG_INFINITY)
         }
     }
 
