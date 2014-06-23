@@ -8,7 +8,8 @@ use graphics::{
     Fill,
     BackEnd,
     Draw,
-    Image
+    Texture,
+    Gl
 };
 
 use piston::{
@@ -18,9 +19,11 @@ use piston::{
     AssetStore,
     GameWindow,
     GameWindowSettings,
+    GameIteratorSettings,
     GameWindowSDL2,
-    Texture,
-    Gl
+    GameEvent,
+    Render,
+    Update
 };
 
 use lib::{
@@ -36,33 +39,45 @@ mod lib;
 mod button;
 
 struct App {
+    gl: Gl,
     ctx: UiContext
 }
 
 impl Game for App {
-    fn render(&mut self, c: &Context, args: &mut RenderArgs) {
-        let mut rend_ctx = self.ctx.with_graphics(c, args.gl);
-        rend_ctx.with(Button::new("hi"), raw_rect(0.0,0.0, 50.0,50.0));
-        rend_ctx.with(Button::new("hi"), raw_rect(0.0,50.0, 50.0,50.0));
+    fn render(&mut self, args: &mut RenderArgs) {
+        let c = &Context::abs(args.width as f64, args.height as f64);
+        let mut rend_ctx = self.ctx.with_graphics(c, &mut self.gl);
+        if rend_ctx.with(Button::new("hi"), raw_rect(0.0,0.0, 50.0,50.0)) {
+            println!("hello 1");
+        }
+        if rend_ctx.with(Button::new("hi"), raw_rect(0.0,50.0, 50.0,50.0)) {
+            println!("hello 2");
+        }
     }
-
-    fn update(&mut self, args: &mut UpdateArgs) {
-
+    fn event(&mut self, event: &mut GameEvent) {
+        match *event {
+            Render(ref mut args) => self.render(args),
+            Update(ref mut args) => self.update(args),
+            other => self.ctx.add_event(&other)
+        }
     }
 }
 
 fn main() {
-    let mut game_window: GameWindowSDL2 = GameWindow::new(GameWindowSettings {
+    let mut game_window = GameWindowSDL2::new(GameWindowSettings {
         title: "Hello World".to_string(),
         size: [200, 400],
         fullscreen: false,
-        exit_on_esc: true,
-        background_color: [0.0, 0.5, 0.0, 0.0]
+        exit_on_esc: true
     });
 
     let mut asset_store = AssetStore::empty();
     let mut app = App {
+        gl: Gl::new(),
         ctx: UiContext::new()
     };
-    app.run(&mut game_window, &mut asset_store);
+    app.run(&mut game_window, &mut asset_store, &GameIteratorSettings {
+        updates_per_second: 60,
+        max_frames_per_second: 60
+    });
 }
