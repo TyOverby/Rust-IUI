@@ -120,6 +120,24 @@ impl UiContext {
             None => {}
         }
     }
+
+    pub fn forget(&mut self, id: &'static str) {
+        let copy_key = {
+            let mut keys = self.stored.keys();
+            let found_key = keys.find(|pair| {
+                match **pair {
+                (_, i_id) if id == i_id => true,
+                    _ => false
+                }
+            });
+            match found_key {
+                Some(key) => *key,
+                None => return
+            }
+        };
+
+        self.stored.remove(&copy_key);
+    }
 }
 
 impl <'a, 'b, 'c, I: ImageSize, B: BackEnd<I>> FrameUiContext<'a, 'b, 'c, I, B> {
