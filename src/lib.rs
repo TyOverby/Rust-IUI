@@ -12,7 +12,7 @@ use std::collections::hashmap::HashMap;
 use std::f64::NEG_INFINITY;
 
 use graphics::{Context, BackEnd, Draw, ImageSize};
-use piston::{GameEvent, MouseMove};
+use piston::{GameEvent, MouseMove, MousePress, MouseRelease};
 
 pub struct Rectangle {
     pub x: f64,
@@ -59,8 +59,11 @@ impl Rectangle {
 
 
 pub struct UiContext {
-    pub hot: Option<&'static str>,
-    pub active: Option<&'static str>,
+    pub mouse_over: Option<&'static str>,
+    pub mouse_down: Option<&'static str>,
+    pub mouse_was_down: Option<&'static str>,
+    pub mouse_up: Option<&'static str>,
+
     stored: HashMap<(TypeId, &'static str), Box<Any>>,
 
     pub mouse_pos: (f64, f64),
@@ -83,15 +86,21 @@ pub trait Component<R>  {
     fn act(&self, clip_box: ClippedRectangle, ui_context: &mut UiContext) -> R;
 }
 
-pub trait ComponentFromState<R>: Component<R> {
-    fn from_state(&mut self, state: &R);
+pub trait AddState<R>: Component<R> {
+    fn add_state(&mut self, state: &R);
+}
+pub trait WithoutState<R>: Component<R> {
+    fn without_state(id: &'static str) -> Self;
 }
 
 impl UiContext {
     pub fn new() -> UiContext {
         UiContext {
-            hot: None,
-            active: None,
+            mouse_over: None,
+            mouse_down: None,
+            mouse_was_down: None,
+            mouse_up: None,
+
             stored: HashMap::new(),
             event_queue: Vec::new(),
             active_events: Vec::new(),
@@ -102,6 +111,12 @@ impl UiContext {
     pub fn with_graphics<'a, 'b, 'c, I: ImageSize, B: BackEnd<I>>
         (&'a mut self, draw_ctx: &'b Context, backend: &'c mut B) -> FrameUiContext<'a, 'b, 'c, I, B> {
         swap(&mut self.event_queue, &mut self.active_events);
+
+        self.mouse_was_down = self.mouse_down;
+        self.mouse_over = None;
+        self.mouse_down = None;
+        self.mouse_up = None;
+
         self.event_queue.clear();
         let ret = FrameUiContext {
             ui_ctx: self,
@@ -141,30 +156,62 @@ impl UiContext {
     }
 }
 
+fn contains_pressed(events :&Vec<GameEvent>) -> bool{
+    events.iter().any(|e| {
+        match e {
+            &MousePress(_) => true,
+            _ => false
+        }
+    })
+}
+
+fn contains_released(events :&Vec<GameEvent>) -> bool{
+    events.iter().any(|e| {
+        match e {
+            &MouseRelease(_) => true,
+            _ => false
+        }
+    })
+}
+
 impl <'a, 'b, 'c, I: ImageSize, B: BackEnd<I>> FrameUiContext<'a, 'b, 'c, I, B> {
     pub fn with<R, C: Component<R>>(&mut self, component: C, clipping: ClippedRectangle) -> R {
+        let id = Some(component.id());
+        if clipping.contains(self.ui_ctx.mouse_pos) {
+            self.ui_ctx.mouse_over = id;
+            if self.ui_ctx.mouse_was_down == id ||
+               contains_pressed(&self.ui_ctx.active_events) {
+                self.ui_ctx.mouse_down = id;
+                self.ui_ctx.mouse_was_down = id;
+            }
+            if contains_released(&self.ui_ctx.active_events) {
+                self.ui_ctx.mouse_up = id;
+                self.ui_ctx.mouse_down = None;
+            }
+        }
+
         let ret = component.act(clipping, self.ui_ctx);
         component.draw(clipping, self.ui_ctx, self.draw_ctx, self.backend);
         ret
     }
 
-    pub fn with_stored<R: Default + 'static, C: ComponentFromState<R> + 'static>
-        (&'a mut self, component: C, clipping: ClippedRectangle)  -> &'a R {
+    pub fn with_stored<'x, R: Default + 'static, C: AddState<R> + 'static>
+        (&'x mut self, component: C, clipping: ClippedRectangle)  -> &'x R {
         let id = component.id();
         let mut component = component;
         let key = (TypeId::of::<C>(), id);
 
         match self.ui_ctx.stored.find(&key) {
             Some(state) => match state.as_ref::<R>() {
-                Some(a) => component.from_state(a),
+                Some(a) => component.add_state(a),
                 None => {
                     let r: &R = &Default::default();
-                    component.from_state(r)
+                    component.add_state(r)
                 }
             },
             None => {
                 let r: &R = &Default::default();
-                component.from_state(r)
+                component.add_state(r)
             }
         };
 
