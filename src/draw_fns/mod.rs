@@ -24,15 +24,15 @@ pub fn draw_button<I: ImageSize, B: BackEnd<I>>
 
     let bound = clip_box.bounds;
     let button_shape = ctx.rect(bound.x, bound.y, bound.w, bound.h);
-    let colored = if draw_state.is_clicked {
-        button_shape.rgb(1.0, 1.0, 1.0)
-    } else if draw_state.is_down {
-        button_shape.rgb(0.0, 1.0, 0.0)
-    } else if draw_state.is_over {
-        button_shape.rgb(1.0, 0.0, 0.0)
-    } else {
-        button_shape.rgb(0.0, 0.0, 1.0)
+
+    let colored = match (draw_state.is_clicked,
+                         draw_state.is_down, draw_state.is_over) {
+        (false, false, false)  => button_shape.rgb(0.0, 0.0, 1.0),
+        (true, _, _) => button_shape.rgb(1.0, 1.0, 1.0),
+        (_, true, _) => button_shape.rgb(1.0, 0.0, 0.0),
+        (_, _, true) => button_shape.rgb(0.0, 1.0, 0.0)
     };
+
     colored.fill(backend);
 }
 
