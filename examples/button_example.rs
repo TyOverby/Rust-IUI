@@ -1,41 +1,34 @@
 extern crate graphics;
 extern crate piston;
 extern crate iui;
+extern crate sdl2_game_window;
+extern crate opengl_graphics;
 
 use graphics::{
     Context,
-    AddRectangle,
-    AddColor,
-    Fill,
-    BackEnd,
-    Draw,
-    Texture,
-    Gl
+    BackEnd
 };
 
 use piston::{
     Game,
     RenderArgs,
-    UpdateArgs,
-    AssetStore,
-    GameWindow,
     GameWindowSettings,
     GameIteratorSettings,
-    GameWindowSDL2,
     GameEvent,
     Render,
     Update
 };
 
+use sdl2_game_window:: GameWindowSDL2;
+
 use iui::{
     UiContext,
-    Component,
-    ClippedRectangle,
     raw_rect
 };
 
+use opengl_graphics::Gl;
+
 use iui::components::button::button;
-use iui::components::toggle_button::toggle_button;
 use iui::draw_fns::draw_button;
 
 struct App {
@@ -44,7 +37,7 @@ struct App {
 }
 
 impl Game for App {
-    fn render(&mut self, args: &mut RenderArgs) {
+    fn render(&mut self, args: &RenderArgs) {
         self.gl.clear_rgba(0.0,0.0,0.0,1.0);
 
         let c = &Context::abs(args.width as f64, args.height as f64);
@@ -79,12 +72,11 @@ fn main() {
         exit_on_esc: true
     });
 
-    let mut asset_store = AssetStore::empty();
     let mut app = App {
         gl: Gl::new(),
         ctx: UiContext::new()
     };
-    app.run(&mut game_window, &mut asset_store, &GameIteratorSettings {
+    app.run(&mut game_window, &GameIteratorSettings {
         updates_per_second: 60,
         max_frames_per_second: 60
     });
