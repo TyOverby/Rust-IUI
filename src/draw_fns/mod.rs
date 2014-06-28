@@ -5,8 +5,6 @@ use graphics::{
     AddRectangle,
     AddColor,
     Draw,
-    Fill,
-    RectangleColorContext
 };
 
 use super::components::button::ButtonDrawState;
@@ -33,7 +31,7 @@ pub fn draw_button<I: ImageSize, B: BackEnd<I>>
         (_, _, true) => button_shape.rgb(0.0, 1.0, 0.0)
     };
 
-    colored.fill(backend);
+    colored.draw(backend);
 }
 
 pub fn draw_toggle_button<I: ImageSize, B: BackEnd<I>>
@@ -59,5 +57,5 @@ pub fn draw_toggle_button<I: ImageSize, B: BackEnd<I>>
         (_, _, true,  _) => shape.rgb(0.0, 1.0, 0.0),
         (_, _, false, _) => shape.rgb(1.0, 0.0, 0.0)
     };
-    colored.fill(backend);
+    colored.draw(backend);
 }

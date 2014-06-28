@@ -1,14 +1,8 @@
-use std::default::Default;
-
 use super::super::{
     UiContext,
     Component,
-    AddState,
-    WithoutState,
     ClippedRectangle
 };
-
-use piston::{MousePress};
 
 pub struct Button {
     id: &'static str,

@@ -6,8 +6,6 @@ use super::super::{
     WithoutState
 };
 
-use piston::{MousePress};
-
 pub struct ToggleButton {
     id: &'static str,
     pressed_state: bool

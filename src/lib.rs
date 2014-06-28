@@ -13,11 +13,11 @@ use std::collections::hashmap::HashMap;
 use std::f64::NEG_INFINITY;
 
 // External imports
-use graphics::{Context, BackEnd, Draw, ImageSize};
+use graphics::{Context, BackEnd, ImageSize};
 use piston::{GameEvent, MouseMove, MousePress, MouseRelease};
 
 // Internal exports
-pub use clipping::{ClippedRectangle, raw_rect};
+pub use clipping::{ClippedRectangle, Rectangle, raw_rect};
 
 // Modules
 mod clipping;
