@@ -36,8 +36,8 @@ pub struct UiContext {
     stored: HashMap<(TypeId, &'static str), Box<Any>>,
 
     pub mouse_pos: (f64, f64),
-    event_queue: Vec<GameEvent<'static>>,
-    pub active_events: Vec<GameEvent<'static>>
+    event_queue: Vec<GameEvent>,
+    pub active_events: Vec<GameEvent>
 }
 
 pub struct FrameUiContext<'a, 'b, 'c, I, B> {
@@ -92,13 +92,12 @@ impl UiContext {
     }
 
     pub fn add_event(&mut self, event: &GameEvent) {
-        match event.to_sendable() {
-            Some(MouseMove(args)) => {
+        match *event {
+            MouseMove(args) => {
                 self.mouse_pos = (args.x, args.y);
                 self.event_queue.push(MouseMove(args));
             }
-            Some(e) => self.event_queue.push(e),
-            None => {}
+            e => self.event_queue.push(e),
         }
     }
 
