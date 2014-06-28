@@ -52,27 +52,21 @@ impl Game for App {
         let c = &Context::abs(args.width as f64, args.height as f64);
         let mut rend_ctx = self.ctx.with_graphics(c, &mut self.gl);
 
+        let toggle_pos = raw_rect(0.0,120.0, 50.0,50.0);
+        let btn1_pos = raw_rect(0.0,0.0, 50.0,50.0);
+        let btn2_pos = raw_rect(0.0,60.0, 50.0,50.0);
+
         // Conditionally draw the inner buttons
         if *rend_ctx.with_stored(
-                toggle_button("_toggle1"),
-                raw_rect(0.0,120.0, 50.0,50.0),
-                draw_toggle_button) {
+            toggle_button("_toggle1"), toggle_pos, draw_toggle_button) {
 
-            if rend_ctx.with( // Conditioned the button being pressed this frame
-                    button("_btn_1"), // This is the button
-                    raw_rect(0.0,0.0, 50.0,50.0), // The position/size of the button
-                    draw_button) { // The function used to draw the button
-
-                // If the button is being pressed this frame, draw this text
-                println!("hello 1");
+            // These buttons will only be drawn if the toggle button is on.
+            if rend_ctx.with(button("_btn_1"), btn1_pos, draw_button) {
+                println!("Button 1 pressed.");
             }
 
-            // Same as above but without comments in your way!
-            if rend_ctx.with(
-                    button("_btn_2"),
-                    raw_rect(0.0,60.0, 50.0,50.0),
-                    draw_button) {
-                println!("hello 2");
+            if rend_ctx.with( button("_btn_2"), btn2_pos, draw_button) {
+                println!("Button 2 pressed.");
             }
         }
     }

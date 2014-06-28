@@ -50,25 +50,18 @@ impl Game for App {
         let c = &Context::abs(args.width as f64, args.height as f64);
         let mut rend_ctx = self.ctx.with_graphics(c, &mut self.gl);
 
-        //if *rend_ctx.with_stored(
-        //        toggle_button("_toggle1"),
-        //        raw_rect(0.0,120.0, 50.0,50.0)) {
+        let btn1_pos = raw_rect(0.0,0.0, 50.0,50.0);
+        let btn2_pos = raw_rect(0.0,60.0, 50.0,50.0);
 
-            if rend_ctx.with(
-                    button("_btn_1"),
-                    raw_rect(0.0,0.0, 50.0,50.0),
-                    draw_button) {
-                println!("hello 1");
-            }
+        if rend_ctx.with(button("_btn_1"), btn1_pos, draw_button) {
+            println!("Button 1 was pressed.");
+        }
 
-            if rend_ctx.with(
-                    button("_btn_2"),
-                    raw_rect(0.0,60.0, 50.0,50.0),
-                    draw_button) {
-                println!("hello 2");
-            }
-        //}
+        if rend_ctx.with(button("_btn_2"), btn2_pos, draw_button) {
+            println!("Button 2 was pressed.");
+        }
     }
+
     fn event(&mut self, event: &mut GameEvent) {
         match *event {
             Render(ref mut args) => self.render(args),
