@@ -1,62 +1,31 @@
 #![crate_id = "iui"]
 
+// Crates
 extern crate graphics;
 extern crate piston;
 
+// STD library
 use std::mem::swap;
-use std::num::abs;
 use std::default::Default;
 use std::intrinsics::TypeId;
 use std::any::{Any, AnyRefExt};
 use std::collections::hashmap::HashMap;
 use std::f64::NEG_INFINITY;
 
+// External imports
 use graphics::{Context, BackEnd, Draw, ImageSize};
 use piston::{GameEvent, MouseMove, MousePress, MouseRelease};
 
-pub struct Rectangle {
-    pub x: f64,
-    pub y: f64,
-    pub w: f64,
-    pub h: f64
+// Internal exports
+pub use clipping::{ClippedRectangle, raw_rect};
+
+// Modules
+mod clipping;
+pub mod draw_fns;
+pub mod components {
+    pub mod button;
+    pub mod toggle_button;
 }
-
-pub struct ClippedRectangle {
-    pub bounds: Rectangle,
-    pub clipping_box: Rectangle
-}
-
-impl ClippedRectangle {
-    pub fn contains(&self, pos: (f64, f64)) -> bool {
-        self.bounds.contains(pos) && self.clipping_box.contains(pos)
-    }
-}
-
-pub fn raw_rect(x: f64, y: f64, w: f64, h: f64) -> ClippedRectangle {
-    ClippedRectangle {
-        bounds: Rectangle { x: x, y: y, w: w, h:h },
-        clipping_box: Rectangle { x: x, y: y, w: w, h:h }
-    }
-}
-
-impl Rectangle {
-    pub fn contains(&self, pos: (f64, f64)) -> bool {
-        let (x, y) = pos;
-        if x < self.x || y < self.y {
-            return false;
-        }
-        if x > self.x + self.w || y > self.y + self.h {
-            return false;
-        }
-        return true;
-    }
-
-    pub fn intersects(&self, other: &Rectangle) -> bool {
-        (abs(self.x - other.x) * 2.0 < (self.w + other.w)) &&
-        (abs(self.y - other.y) * 2.0 < (self.h + other.h))
-    }
-}
-
 
 pub struct UiContext {
     pub mouse_over: Option<&'static str>,
@@ -67,7 +36,6 @@ pub struct UiContext {
     stored: HashMap<(TypeId, &'static str), Box<Any>>,
 
     pub mouse_pos: (f64, f64),
-
     event_queue: Vec<GameEvent<'static>>,
     pub active_events: Vec<GameEvent<'static>>
 }
@@ -78,18 +46,15 @@ pub struct FrameUiContext<'a, 'b, 'c, I, B> {
     backend: &'c mut B,
 }
 
-pub trait Component<R>  {
+pub trait Component<R, D: Default>  {
     fn id(&self) -> &'static str;
-
-    fn draw<I: ImageSize, B: BackEnd<I>>
-        (&self, clip_box: ClippedRectangle, ui_ctx: &UiContext, ctx: &Context, backend: &mut B);
-    fn act(&self, clip_box: ClippedRectangle, ui_context: &mut UiContext) -> R;
+    fn act(&self, clip_box: ClippedRectangle, ui_context: &mut UiContext, drawState: &mut D) -> R;
 }
 
-pub trait AddState<R>: Component<R> {
+pub trait AddState<R, D>: Component<R, D> {
     fn add_state(&mut self, state: &R);
 }
-pub trait WithoutState<R>: Component<R> {
+pub trait WithoutState<R, D>: Component<R, D> {
     fn without_state(id: &'static str) -> Self;
 }
 
@@ -175,7 +140,12 @@ fn contains_released(events :&Vec<GameEvent>) -> bool{
 }
 
 impl <'a, 'b, 'c, I: ImageSize, B: BackEnd<I>> FrameUiContext<'a, 'b, 'c, I, B> {
-    pub fn with<R, C: Component<R>>(&mut self, component: C, clipping: ClippedRectangle) -> R {
+    pub fn with<R, D: Default, C: Component<R, D>>
+        (&mut self,
+         component: C,
+         clipping: ClippedRectangle,
+         drawfn: |clip_box: ClippedRectangle, draw_state: D, ctx: &Context, backend: &mut B|) -> R {
+
         let id = Some(component.id());
         if clipping.contains(self.ui_ctx.mouse_pos) {
             self.ui_ctx.mouse_over = id;
@@ -190,13 +160,17 @@ impl <'a, 'b, 'c, I: ImageSize, B: BackEnd<I>> FrameUiContext<'a, 'b, 'c, I, B> 
             }
         }
 
-        let ret = component.act(clipping, self.ui_ctx);
-        component.draw(clipping, self.ui_ctx, self.draw_ctx, self.backend);
+        let mut draw_state = Default::default();
+        let ret = component.act(clipping, self.ui_ctx, &mut draw_state);
+        drawfn(clipping, draw_state, self.draw_ctx, self.backend);
         ret
     }
 
-    pub fn with_stored<'x, R: Default + 'static, C: AddState<R> + 'static>
-        (&'x mut self, component: C, clipping: ClippedRectangle)  -> &'x R {
+    pub fn with_stored<'x, D: Default, R: Default + 'static, C: AddState<R, D> + 'static>
+        (&'x mut self,
+         component: C,
+         clipping: ClippedRectangle,
+         drawfn: |clip_box: ClippedRectangle, draw_state: D, ctx: &Context, backend: &mut B|)  -> &'x R {
         let id = component.id();
         let mut component = component;
         let key = (TypeId::of::<C>(), id);
@@ -215,7 +189,7 @@ impl <'a, 'b, 'c, I: ImageSize, B: BackEnd<I>> FrameUiContext<'a, 'b, 'c, I, B> 
             }
         };
 
-        let result = self.with(component, clipping);
+        let result = self.with(component, clipping, drawfn);
         self.ui_ctx.stored.insert(key, box result as Box<Any>);
         let value = self.ui_ctx.stored.get_mut(&key);
         value.as_ref::<R>().unwrap()
